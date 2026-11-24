@@ -1025,6 +1025,7 @@ else if(V=='set'){const k=S.cfg,RW=(g,c,l,inner,fn='')=>`<div class="sr" ${fn?`o
 m.innerHTML=`<div class="hd"><button class="ib" onclick="go('home')">${I('bk')}</button><span></span><span></span></div><div class="body"><h1 class="lt">设置</h1><div class="sb2">${GI('sr',16)}<input placeholder="搜索" oninput="sflt(this.value)"></div>
 <div class="cd"><div class="sr pf" onclick="go('me')">${A(S.me,60)}<div style="flex:1"><b style="font-size:20px">${esc(S.me.name)}</b><div class="sub">NÉVI ID、头像、我的人设</div></div>${I('ch',18)}</div></div>
 <div class="cd">${RW('face','#a9a5d8','我的人生',CH,"go('me')")}</div>
+<div class="lh">版本与更新</div><div class="cd">${RW('rf','#8e9db5','自动检查更新',SW(k.updateCheck!==false,"S.cfg.updateCheck=this.checked;save();if(this.checked&&window.neviCheckUpdate)window.neviCheckUpdate(false)"))}${RW('spark','#8e9db5','立即检查更新',CH,"window.neviCheckUpdate&&window.neviCheckUpdate(true)")}<div id="nevi-update-status" style="padding:2px 16px 13px 52px;color:#9296a2;font-size:12px;line-height:1.5">${k.updateCheck===false?'自动检查已关闭':'等待检查更新…'}</div></div>
 <div class="cd">${RW('pic','#f08aa8','开屏动画',SW(k.cover!==false,'S.cfg.cover=this.checked;save()'))}${RW('face','#86cf98','Human Presence 提示词',SW(k.hp!==false,'S.cfg.hp=this.checked;save()'))}${RW('copy','#f2b66d','附加提示词',`<span style="flex:1"></span><span class="sub">${k.extra?'已设置':'无'}</span>${I('ch',16)}`,'extraM()')}${RW('book','#b88ad9','世界书',CH,"go('wb')")}</div>
 <div class="lh">内置提示词(每次对话都会带上,token 较高,可关闭)</div><div class="cd">${['adh','lock','wbr'].map(k=>RW(k=='adh'?'face':k=='lock'?'tag':'book',k=='adh'?'#8ccf98':k=='lock'?'#7a7a7e':'#b88ad9',BPN[k],`<span style="flex:1"></span><span class="sub">≈${Math.round(BP[k].length/1.6)} tokens</span><input type="checkbox" class="sw" style="margin-left:10px" ${bpOn(k)?'checked':''} onclick="event.stopPropagation()" onchange="S.cfg.bp=S.cfg.bp||{};S.cfg.bp['${k}']=this.checked;save()">`,`bpMenu('${k}')`)).join('')}</div>
 <div class="cd">${RW('near','#7fb2ee','API 地址',IN('s1',k.url))}${RW('tag','#8a8a8f','API Key',IN('s2',k.key,'type="password"'))}${RW('hex','#ea6a60','模型',IN('s3',k.model,'list="mdl"')+`<datalist id="mdl">${(k.models||[]).map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`)}${RW('hex','#6a67cf','拉取模型列表',`<span style="flex:1"></span><span class="sub">${(k.models||[]).length?k.models.length+' 个':''}</span>${I('ch',16)}`,'fetchModels()')}${RW('spark','#f2b66d','温度',IN('s4',k.temp,'type="number" step="0.1"'))}${RW('svc','#86cf98','测试连接',CH,'testS()')}</div>
@@ -1765,29 +1766,40 @@ document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&['+','-','=',
 {const vv=window.visualViewport,ph=document.getElementById('ph');if(vv&&ph){const fit=()=>{ph.style.setProperty('height',vv.height+'px','important');ph.style.setProperty('top',vv.offsetTop+'px','important');window.scrollTo(0,0)};vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit);fit()}}
 render();
 
-/* NÉVI 自动更新检测：部署端文件变化后，已打开的客户端会提示刷新 */
+/* NÉVI 自动更新检测：以线上 HTML 内容指纹比对，检查时提供明确状态反馈 */
 (()=>{
   if(!/^https?:$/.test(location.protocol)) return;
   const style=document.createElement('style');
-  style.textContent=`#nevi-update-toast{position:fixed;z-index:2147483000;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));display:none;align-items:center;gap:12px;padding:13px 15px;border:1px solid rgba(150,150,150,.22);border-radius:18px;background:rgba(250,249,246,.96);color:#333;box-shadow:0 8px 30px rgba(0,0,0,.13);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);font:13px -apple-system,BlinkMacSystemFont,sans-serif}#nevi-update-toast.show{display:flex}#nevi-update-toast .nu-copy{flex:1;line-height:1.45}#nevi-update-toast button{border:0;border-radius:12px;padding:9px 14px;background:#343434;color:#fff;font:600 12px inherit;white-space:nowrap}`;
+  style.textContent=`#nevi-update-toast{position:fixed;z-index:2147483000;left:16px;right:16px;bottom:calc(18px + env(safe-area-inset-bottom));display:none;align-items:center;gap:12px;padding:13px 15px;border:1px solid rgba(150,150,150,.22);border-radius:18px;background:rgba(250,249,246,.97);color:#333;box-shadow:0 8px 30px rgba(0,0,0,.13);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);font:13px -apple-system,BlinkMacSystemFont,sans-serif}#nevi-update-toast.show{display:flex}#nevi-update-toast .nu-copy{flex:1;line-height:1.45}#nevi-update-toast button{border:0;border-radius:12px;padding:9px 14px;background:#343434;color:#fff;font:600 12px inherit;white-space:nowrap}`;
   document.head.appendChild(style);
-  const toast=document.createElement('div');toast.id='nevi-update-toast';toast.innerHTML='<div class="nu-copy"><b>发现 NÉVI 新版本</b><br>更新已发布，刷新后即可使用</div><button type="button">立即更新</button>';
-  document.body.appendChild(toast);
-  toast.querySelector('button').addEventListener('click',()=>{const u=new URL(location.href);u.searchParams.set('nevi_refresh',Date.now());location.replace(u.toString())});
-  let baseline=null, checking=false, notified=false;
+  const updateToast=document.createElement('div');updateToast.id='nevi-update-toast';updateToast.innerHTML='<div class="nu-copy"><b>发现 NÉVI 新版本</b><br>更新已发布，刷新后即可使用</div><button type="button">立即更新</button>';
+  document.body.appendChild(updateToast);
+  const setStatus=(msg)=>{const el=document.getElementById('nevi-update-status');if(el)el.textContent=msg;};
+  updateToast.querySelector('button').addEventListener('click',()=>{const u=new URL(location.href);u.searchParams.set('nevi_refresh',Date.now());location.replace(u.toString())});
+  let baseline=null, checking=false, hasUpdate=false, lastCheck=0;
   const getVersion=async()=>{
     const u=new URL(location.href);u.hash='';u.searchParams.set('__nevi_update_check',String(Date.now()));
-    const r=await fetch(u.toString(),{method:'HEAD',cache:'no-store',credentials:'same-origin'});
-    if(!r.ok) throw new Error('version check failed');
-    return [r.headers.get('etag')||'',r.headers.get('last-modified')||'',r.headers.get('content-length')||''].join('|');
+    const r=await fetch(u.toString(),{method:'GET',cache:'no-store',credentials:'same-origin',headers:{'Cache-Control':'no-cache','Pragma':'no-cache'}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const body=await r.text();
+    let hash=2166136261;for(let i=0;i<body.length;i++){hash^=body.charCodeAt(i);hash=Math.imul(hash,16777619)}
+    return body.length+':'+(hash>>>0).toString(16);
   };
-  const check=async()=>{
-    if(checking||notified||document.visibilityState==='hidden')return;
-    checking=true;
-    try{const v=await getVersion();if(baseline===null)baseline=v;else if(v!==baseline){notified=true;toast.classList.add('show')}}catch(e){}
-    finally{checking=false}
+  const check=async(force=false)=>{
+    if(checking||(!force&&S.cfg.updateCheck===false))return;
+    if(!force&&document.visibilityState==='hidden')return;
+    checking=true;setStatus('正在连接更新服务器…');
+    try{
+      const v=await getVersion();lastCheck=Date.now();
+      if(baseline===null){baseline=v;setStatus('已连接 · 自动监测中');if(force)window.toast&&window.toast('检查完成，当前已是最新版本');}
+      else if(v!==baseline){hasUpdate=true;setStatus('发现新版本 · 请点击下方提示立即更新');updateToast.classList.add('show');if(force)window.toast&&window.toast('发现 NÉVI 新版本，请查看页面底部提示');}
+      else{setStatus('当前已是最新版本 · 刚刚检查');if(force)window.toast&&window.toast('检查完成，当前已是最新版本');}
+    }catch(e){setStatus('检查失败 · 请确认网络后重试');if(force)window.toast&&window.toast('更新检查失败，请检查网络连接');}
+    finally{checking=false;}
   };
-  check();setInterval(check,90000);document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check()});
+  window.neviCheckUpdate=check;
+  check();setInterval(()=>check(false),90000);
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')check(false)});
 })();
 </script></body></html>
 
